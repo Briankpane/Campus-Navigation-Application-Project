@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Campus Navigation- York University</title>
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <!-- Leaflet Control Geocoder CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+  <!-- Leaflet Routing Machine CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+    header {
+      background: rgb(155, 1, 1);
+      color: white;
+      padding: 15px 0;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 2em;
+    }
+    header p {
+      margin: 5px 0 0;
+      font-size: 1.2em;
+    }
+    #map {
+      width: 100%;
+      height: 600px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header Section -->
+  <header>
+    <h1>Campus Navigation - York University Keele Campus</h1>
+    <p>Find Your Path to Success </p>
+  </header>
+  
+  <!-- Map Container -->
+  <div id="map"></div>
+  
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <!-- Leaflet Control Geocoder JS -->
+  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+  <!-- Leaflet Routing Machine JS -->
+  <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+  <script>
+    // Define the campus bounds for York University.
+    // Coordinates: Southwest [43.765, -79.515] and Northeast [43.780, -79.490]
+    var campusBounds = L.latLngBounds(
+      [43.765, -79.515],
+      [43.780, -79.490]
+    );
+    
+    // Initialize the map centered on York University and restrict panning.
+    var map = L.map('map', {
+      center: [43.7737, -79.5019],
+      zoom: 15,
+      maxBounds: campusBounds,
+      maxBoundsViscosity: 1.0
+    });
+    
+    // Add OpenStreetMap tiles.
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: 'Map data © <a href="https://openstreetmap.org">OpenStreetMap</a> contributors'
+    }).addTo(map);
+    
+    // Global variables to store the user's current location and the routing control.
+    var currentLocation = null;
+    var routingControl = null;
+    
+    // Request user's current location.
+    map.locate({ setView: false, maxZoom: 16 });
+    
+    // When the location is found, store it and add a marker.
+    map.on('locationfound', function(e) {
+      currentLocation = e.latlng;
+      L.marker(currentLocation)
+        .addTo(map)
+        .bindPopup("You are here")
+        .openPopup();
+    });
+    
+    // Handle geolocation errors.
+    map.on('locationerror', function(e) {
+      alert("Geolocation error: " + e.message);
+    });
+    
+    // Add a geocoder control, restricted to the campus area using Nominatim parameters.
+    var geocoderControl = L.Control.geocoder({
+      geocoder: new L.Control.Geocoder.Nominatim({
+        geocodingQueryParams: {
+          // Nominatim expects viewbox as: left, top, right, bottom (lon, lat)
+          viewbox: '-79.515,43.780,-79.490,43.765',
+          bounded: 1
+        }
+      }),
+      defaultMarkGeocode: false
+    })
+    .on('markgeocode', function(e) {
+      // Use the geocoded result's center as the destination.
+      var destination = e.geocode.center;
+      
+      // Fit the map to the geocoded result's bounding box.
+      map.fitBounds(e.geocode.bbox);
+      
+      // Remove any existing route.
+      if (routingControl) {
+        map.removeControl(routingControl);
+      }
+      
+      // Check if the user's current location is available.
+      if (!currentLocation) {
+        alert("Current location not available. Please allow geolocation.");
+        return;
+      }
+      
+      // Create a routing control to calculate and display the shortest route.
+      routingControl = L.Routing.control({
+        waypoints: [
+          currentLocation,
+          destination
+        ],
+        router: L.Routing.osrmv1({
+          serviceUrl: 'https://router.project-osrm.org/route/v1'
+        }),
+        show: false,       // Hide the routing panel.
+        addWaypoints: false,
+        fitSelectedRoute: true
+      }).addTo(map);
+    })
+    .addTo(map);
+  </script>
+</body>
+
+<section id="building-map-section" style="margin: 0 auto; text-align: center;">
+    <h2>Building Map</h2>
+    <div id="table-search" style="margin-bottom: 20px;">
+      <input type="text" id="search-input" placeholder="Search by building name or acronym">
+      <button id="search-btn">Search</button>
+    </div>
+    <table id="building-table" style="margin: 0 auto;">
+      <thead>
+        <tr>
+          <th>Acronym</th>
+          <th>Building Name</th>
+          <th>Find a Room</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>ACE</td>
+          <td>Accolade Building East</td>
+          <td>
+            <a href="/ACE.html">
+              <button type="button">See Building Map</button>
+            </a>
+          </td>
+          
+        </tr>
+        <tr>
+          <td>ACW</td>
+          <td>Accolade Building West</td>
+          <td><button onclick="window.location.href='/building-map/SCI'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>ATK</td>
+          <td>Atkinson</td>
+          <td><button onclick="window.location.href='/building-map/ACAD'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>BC</td>
+          <td>Norman Bethune College</td>
+          <td><button onclick="window.location.href='/building-map/SCI'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>BCSS</td>
+          <td>Bennet Centre for Student Services</td>
+          <td><button onclick="window.location.href='/building-map/ACAD'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>BRG</td>
+          <td>Bergeron Centre for Engineering Excellence</td>
+          <td><button onclick="window.location.href='/building-map/SCI'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>BSB</td>
+          <td>Behavioural Sciences Building</td>
+          <td><button onclick="window.location.href='/building-map/ACAD'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>BU</td>
+          <td>Burton Auditorium</td>
+          <td><button onclick="window.location.href='/building-map/SCI'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>CB</td>
+          <td>Chemistry Building</td>
+          <td><button onclick="window.location.href='/building-map/ACAD'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>CC</td>
+          <td>Calumet College</td>
+          <td><button onclick="window.location.href='/building-map/SCI'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>CFA</td>
+          <td>The Joan & Martin Goldfarb Centre for Fine Arts</td>
+          <td><button onclick="window.location.href='/building-map/ACAD'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>CFT</td>
+          <td>Centre for Film and Theatre</td>
+          <td><button onclick="window.location.href='/building-map/SCI'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>CLH</td>
+          <td>Curtis Lecture Halls</td>
+          <td><button onclick="window.location.href='/building-map/ACAD'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>CMB</td>
+          <td>Computer Methods Building</td>
+          <td><button onclick="window.location.href='/building-map/SCI'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>CSQ</td>
+          <td>Central Square</td>
+          <td><button onclick="window.location.href='/building-map/ACAD'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>CUB</td>
+          <td>Central Utilities Building</td>
+          <td><button onclick="window.location.href='/building-map/SCI'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>DB</td>
+          <td>Dahdaleh Building</td>
+          <td><button onclick="window.location.href='/building-map/ACAD'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>ELC</td>
+          <td>Executive Learning Centre</td>
+          <td><button onclick="window.location.href='/building-map/SCI'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>FC</td>
+          <td>Founders College</td>
+          <td><button onclick="window.location.href='/building-map/ACAD'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>FRQ</td>
+          <td>Farquaharson Life Sciences</td>
+          <td><button onclick="window.location.href='/building-map/SCI'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>HNE</td>
+          <td>Environmental Studies</td>
+          <td><button onclick="window.location.href='/building-map/ACAD'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>IKB</td>
+          <td>Ignat Kaneff Building (Osgoode Hall Law School)</td>
+          <td><button onclick="window.location.href='/building-map/SCI'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>K</td>
+          <td>Kisnmen Building</td>
+          <td><button onclick="window.location.href='/building-map/ACAD'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>KT</td>
+          <td>Kaneff Tower</td>
+          <td><button onclick="window.location.href='/building-map/SCI'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>LAS</td>
+          <td>Lassonde Building</td>
+          <td><button onclick="window.location.href='/building-map/ACAD'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>LSB</td>
+          <td>Life Sciences Building</td>
+          <td><button onclick="window.location.href='/building-map/SCI'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>LUM</td>
+          <td>Lumbers Building</td>
+          <td><button onclick="window.location.href='/building-map/ACAD'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>MB</td>
+          <td>Rob and Cheryl McEwen Graduate Study & Research Building</td>
+          <td><button onclick="window.location.href='/building-map/SCI'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>MC</td>
+          <td>McLaughlin College</td>
+          <td><button onclick="window.location.href='/building-map/ACAD'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>PR</td>
+          <td>Physical Resources Building</td>
+          <td><button onclick="window.location.href='/building-map/SCI'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>PSE</td>
+          <td>Petrie Science and Engineering Building / Petrie Observatory</td>
+          <td><button onclick="window.location.href='/building-map/ACAD'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>R N</td>
+          <td>Ross Building - North wing</td>
+          <td><button onclick="window.location.href='/building-map/SCI'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>R S</td>
+          <td>Ross Building - South wing</td>
+          <td><button onclick="window.location.href='/building-map/ACAD'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>SC</td>
+          <td>Stong College</td>
+          <td><button onclick="window.location.href='/building-map/SCI'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>SCL</td>
+          <td>Scott Library</td>
+          <td><button onclick="window.location.href='/building-map/ACAD'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>SHR</td>
+          <td>Sherman Health Science Research Centre</td>
+          <td><button onclick="window.location.href='/building-map/SCI'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>SLG</td>
+          <td>Stedman Lecture Halls</td>
+          <td><button onclick="window.location.href='/building-map/ACAD'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>SSB</td>
+          <td>Seymour Schulich Building</td>
+          <td><button onclick="window.location.href='/building-map/SCI'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>STC</td>
+          <td>Student Centre</td>
+          <td><button onclick="window.location.href='/building-map/ACAD'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>STL</td>
+          <td>Steacie Science and Engineering Library</td>
+          <td><button onclick="window.location.href='/building-map/SCI'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>TC Sobeys</td>
+          <td>Tennis Canada (TC Sobeys)</td>
+          <td><button onclick="window.location.href='/building-map/SCI'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>TFC</td>
+          <td>Track and Field Centre</td>
+          <td><button onclick="window.location.href='/building-map/SCI'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>TM Tait</td>
+          <td>Tait Mckenzie Centre</td>
+          <td><button onclick="window.location.href='/building-map/SCI'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>VC</td>
+          <td>Vanier College</td>
+          <td><button onclick="window.location.href='/building-map/SCI'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>VH</td>
+          <td>Vari Hall</td>
+          <td><button onclick="window.location.href='/building-map/SCI'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>WC</td>
+          <td>Winters College</td>
+          <td><button onclick="window.location.href='/building-map/SCI'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>WOB</td>
+          <td>West Office Building</td>
+          <td><button onclick="window.location.href='/building-map/SCI'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>WSC</td>
+          <td>William Small Centre</td>
+          <td><button onclick="window.location.href='/building-map/SCI'">See Building Map</button></td>
+        </tr>
+        <tr>
+          <td>YL</td>
+          <td>York Lanes</td>
+          <td><button onclick="window.location.href='/building-map/SCI'">See Building Map</button></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+  <script>
+    document.getElementById('search-btn').addEventListener('click', function() {
+      var input = document.getElementById('search-input').value.toLowerCase().trim();
+      var table = document.getElementById('building-table');
+      var rows = table.getElementsByTagName('tr');
+      
+      // Loop through table rows, skipping the header row.
+      for (var i = 1; i < rows.length; i++) {
+        var acronymCell = rows[i].getElementsByTagName('td')[0];
+        var buildingNameCell = rows[i].getElementsByTagName('td')[1];
+        if (acronymCell && buildingNameCell) {
+          var acronymText = acronymCell.textContent || acronymCell.innerText;
+          var buildingNameText = buildingNameCell.textContent || buildingNameCell.innerText;
+          if (acronymText.toLowerCase().indexOf(input) > -1 || buildingNameText.toLowerCase().indexOf(input) > -1) {
+            rows[i].style.display = "";
+          } else {
+            rows[i].style.display = "none";
+          }
+        }
+      }
+    });
+  </script>
+  
+
+
+</html>
